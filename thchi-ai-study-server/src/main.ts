@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: 'https://thchi.netlify.app/',
+    origin: 'https://thchi.netlify.app',
     credentials: true,
   });
   app.use(cookieParser());
