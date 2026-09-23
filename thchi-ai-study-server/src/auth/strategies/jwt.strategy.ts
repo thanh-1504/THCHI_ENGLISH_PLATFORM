@@ -26,18 +26,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: Request, payload: any) {
-    const token = extractToken(req);
-    const isTokenBlackList = await this.redisService.client.exists(
-      `auth:blacklist:${token}`,
-    );
-    if (isTokenBlackList)
+  const token = extractToken(req);
+
+  try {
+    const isBlacklisted = await this.redisService.client.exists(`auth:blacklist:${token}`);
+    if (isBlacklisted) {
       throw new UnauthorizedException('Token này không còn hiệu lực');
-    return {
-      id: payload.id,
-      email: payload.email,
-      username: payload.name,
-      role: payload.role,
-      status: payload.status,
-    };
+    }
+  } catch (err) {
+    if (err instanceof UnauthorizedException) throw err; 
+    console.error('Redis blacklist check failed, allowing request:', err.message);
   }
+
+  return { id: payload.id, email: payload.email, username: payload.name, role: payload.role, status: payload.status };
+}
 }
