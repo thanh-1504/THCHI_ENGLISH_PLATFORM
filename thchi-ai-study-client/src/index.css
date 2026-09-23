@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@theme {
+  --my-gradient: linear-gradient(83deg, #58cc02 9.02%, #23ac38 90.81%);
+  --my-bg-green-gradient: linear-gradient(105deg, #53de69 0, #3ec654 83.85%);
+  --my-topic-green-gradient: linear-gradient(
+    83.47deg,
+    #58cc02 9.02%,
+    #23ac38 90.81%
+  );
+  --my-topic-green-hover-gradient: linear-gradient(
+    83.47deg,
+    #5edb01 100%,
+    #5edb01 0
+  );
+  --color-text-green: #23ac38;
+  --color-text-yellow: #ee9b1f;
+  --color-gray-input-search: #ececec;
+  --color-stas-card: #fefbf0;
+  --shadow-topic-green: 0 8px 0 0 rgba(35, 172, 56, 0.5);
+   --breakpoint-xs: 375px
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE và Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+}
+
+input {
+  line-height: normal;
+  vertical-align: middle;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: black;
+  font-size: 14px;
+  font-weight: 400;
+  font-style: italic;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+.bg-green-gradient {
+  background: var(--my-bg-green-gradient);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInDown {
+  animation: fadeInDown 0.25s ease-out both;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out both;
+}

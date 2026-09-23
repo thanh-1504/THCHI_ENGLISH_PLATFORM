@@ -1,0 +1,632 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum AuthProvider {
+  GOOGLE
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+enum OtpType {
+  REGISTER
+  FORGOT_PASSWORD
+}
+
+enum ReviewStep {
+  LISTEN_AND_TYPE
+  CHOOSE_MEANING
+  FILL_WITH_EXAMPLE
+  FILL_NO_EXAMPLE
+  LISTEN_CHOOSE_WORD
+  LISTEN_CHOOSE_ANSWER
+  LISTEN_CHOOSE_MEANING
+  FILL_IN_BLANK
+}
+
+enum LearnStep {
+  FLASHCARD
+  LISTEN_AND_TYPE
+  FILL_IN_BLANK
+}
+
+enum WordStatus {
+  ACTIVE
+  SLEEPING
+}
+
+enum WordLevel {
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
+  LEVEL_4
+  LEVEL_5
+}
+
+enum WordType {
+  NOUN
+  VERB
+  ADJECTIVE
+  ADVERB
+  PREPOSITION
+  CONJUNCTION
+  PRONOUN
+  OTHER
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PremiumDuration {
+  THREE_MONTHS
+  ONE_YEAR
+}
+
+enum RankTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+}
+
+enum PaymentGateway {
+  VNPAY
+  SEPAY
+}
+
+
+enum GoalStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id        String        @id @default(uuid())
+  name      String
+  email     String        @unique
+  password  String?
+  role      Role          @default(USER)
+  status    AccountStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deletedAt DateTime?
+  streakGoals StreakGoal[]
+  profile           UserProfile?
+  oauthAccounts     OAuthAccount[]
+  subscription      Subscription?
+  transactions      Transaction[]
+  notebook          Notebook?
+  streakInfo        UserStreak?
+  rankInfo          UserRank?
+  learningLogs      LearningLog[]
+  reviewLogs        ReviewLog[]
+  reviewSessions    ReviewSession[]
+  learningSessions  LearningSession[]
+  courseEnrollments CourseEnrollment[]
+  posts             Post[]
+  postLikes         PostLike[]
+  comments          Comment[]
+  notificationsReceived Notification[] @relation("NotificationRecipient")
+  notificationsSent     Notification[] @relation("NotificationActor")
+  aiPracticeUsages  AiPracticeUsage[]
+  @@map("users")
+}
+
+model UserProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  displayName String
+  avatarUrl   String?
+  avatarPublicId  String? 
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model OAuthAccount {
+  id          String       @id @default(uuid())
+  userId      String
+  provider    AuthProvider
+  providerUid String
+  createdAt   DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUid])
+  @@map("oauth_accounts")
+}
+
+model OtpCode {
+  id        String    @id @default(uuid())
+  email     String
+  type      OtpType
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+  @@index([email, type]) 
+  @@unique([email, type])
+  @@map("otp_codes")
+}
+
+
+model UserStreak {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  currentStreak     Int       @default(0)
+  longestStreak     Int       @default(0)
+  lastStudiedDate   DateTime?
+  streakShieldCount Int       @default(0)
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_streaks")
+}
+
+
+model UserRank {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  currentTier RankTier @default(BRONZE)
+  xpThisWeek  Int      @default(0)
+  xpTotal     Int      @default(0)
+  weeklyRank  Int?
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_ranks")
+}
+
+model RankTierConfig {
+  id          String   @id @default(uuid())
+  tier        RankTier @unique
+  xpRequired  Int
+  xpToMaintain  Int
+  description String?
+
+  @@map("rank_tier_configs")
+}
+
+model PremiumPlan {
+  id          String          @id @default(uuid())
+  name        String
+  duration    PremiumDuration @unique
+  price       Decimal         @db.Decimal(12, 2)
+  originalPrice Decimal?        @db.Decimal(12, 2)
+  badge         String?
+  description String?
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+
+  subscriptions Subscription[]
+  transactions  Transaction[]
+  @@map("premium_plans")
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  planId    String
+  startDate DateTime?
+  endDate   DateTime?
+  isActive  Boolean  @default(false)
+  grantedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan PremiumPlan @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model Transaction {
+  id             String            @id @default(uuid())
+  userId         String
+  planId         String
+  paymentCode    String            @unique
+  amount         Decimal           @db.Decimal(12, 2)
+  status         TransactionStatus @default(PENDING)
+  paymentGateway PaymentGateway?
+  gatewayRef     String?           @unique
+  note           String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user User        @relation(fields: [userId], references: [id])
+  plan PremiumPlan @relation(fields: [planId], references: [id])
+
+  @@map("transactions")
+}
+
+model DashboardStats {
+  id                String   @id @default(uuid())
+  statDate          DateTime @db.Date 
+  totalUsers        Int
+  totalPremiumUsers Int
+  totalFreeUsers    Int
+  totalRevenue      Decimal  @db.Decimal(14, 2)
+  newUsersToday     Int
+  revenueToday      Decimal  @db.Decimal(14, 2)
+  activeSessions    Int
+  calculatedAt      DateTime @default(now()) 
+
+  @@unique([statDate]) 
+  @@map("dashboard_stats")
+}
+
+model Word {
+  id        String   @id @default(uuid())
+  term      String   
+  phonetic  String?
+  audioUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  definitions     WordDefinition[]
+  examples        WordExample[]
+  topicWords      TopicWord[]
+  notebookEntries NotebookEntry[]
+  learningLogs    LearningLog[]
+
+  @@map("words")
+}
+
+model WordDefinition {
+  id       String   @id @default(uuid())
+  wordId   String
+  wordType WordType
+  meaning  String
+
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@map("word_definitions")
+}
+
+model WordExample {
+  id            String   @id @default(uuid())
+  wordId        String
+  sentence      String
+  translation   String?
+  isAiGenerated Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  word Word @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@map("word_examples")
+}
+
+
+model Course {
+  id             String    @id @default(uuid())
+  title          String
+  subtitle       String?
+  description    String?
+  imageUrl       String?
+  imagePublicId  String?
+  isPremium      Boolean   @default(false)
+  isPublished    Boolean   @default(false)
+  orderIndex     Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  topics      Topic[]
+  enrollments CourseEnrollment[]
+
+  @@map("courses")
+}
+
+model Topic {
+  id         String    @id @default(uuid())
+  courseId   String
+  title      String
+  subtitle   String?
+  imageUrl   String?
+  orderIndex Int
+  isPremium  Boolean   @default(false)
+  isPublished Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topicWords       TopicWord[]
+  learningSessions LearningSession[]
+
+  @@unique([courseId, orderIndex])
+  @@map("topics")
+}
+
+model TopicWord {
+  id         String  @id @default(uuid())
+  topicId    String
+  wordId     String
+  orderIndex Int
+  imageUrl   String?
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  word  Word  @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, wordId])
+  @@map("topic_words")
+}
+
+model CourseEnrollment {
+  id             String    @id @default(uuid())
+  userId         String
+  courseId       String
+  enrolledAt     DateTime  @default(now())
+  completedAt    DateTime?
+  lastAccessedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("course_enrollments")
+}
+
+model LearningSession {
+  id          String    @id @default(uuid())
+  userId      String
+  topicId     String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  xpEarned    Int       @default(0)
+  wordsCount  Int       @default(0)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic        Topic         @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  learningLogs LearningLog[]
+
+  @@map("learning_sessions")
+}
+
+model LearningLog {
+  id                String    @id @default(uuid())
+  userId            String
+  learningSessionId String
+  wordId            String
+  step              LearnStep
+  isCorrect         Boolean
+  attemptCount      Int       @default(1)
+  completedAt       DateTime  @default(now())
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learningSession LearningSession @relation(fields: [learningSessionId], references: [id], onDelete: Cascade)
+  word            Word            @relation(fields: [wordId], references: [id])
+
+  @@map("learning_logs")
+}
+
+
+
+model Notebook {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  totalWordsSaved Int      @default(0)
+  notebookLevel   Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries NotebookEntry[]
+
+  @@map("notebooks")
+}
+
+model NotebookEntry {
+  id         String     @id @default(uuid())
+  notebookId String
+  wordId     String
+  level      WordLevel  @default(LEVEL_1)
+  status     WordStatus @default(ACTIVE)
+  savedAt    DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  nextReviewAt DateTime?
+  intervalDays Int       @default(1)
+  easeFactor   Float     @default(2.5)
+  reviewCount  Int       @default(0)
+
+  masteredAt DateTime?
+
+  notebook   Notebook    @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  word       Word        @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  reviewLogs ReviewLog[]
+
+  @@unique([notebookId, wordId])
+  @@map("notebook_entries")
+}
+
+model ReviewSession {
+  id           String    @id @default(uuid())
+  userId       String
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  totalWords   Int       @default(0)
+  correctCount Int       @default(0)
+  xpEarned     Int       @default(0)
+  speedWpm     Float?
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewLogs ReviewLog[]
+
+  @@map("review_sessions")
+}
+
+model ReviewLog {
+  id              String     @id @default(uuid())
+  userId          String
+  reviewSessionId String
+  notebookEntryId String
+  step            ReviewStep
+  isCorrect       Boolean
+  answeredAt      DateTime   @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewSession ReviewSession @relation(fields: [reviewSessionId], references: [id], onDelete: Cascade)
+  notebookEntry NotebookEntry @relation(fields: [notebookEntryId], references: [id], onDelete: Cascade)
+
+  @@map("review_logs")
+}
+
+model Post {
+  id         String     @id @default(uuid())
+  userId     String
+  title      String
+  content    String
+  imageUrl   String?
+  status     PostStatus @default(PENDING)
+  reviewedBy String?
+  
+  reviewedAt DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  deletedAt  DateTime?
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes         PostLike[]
+  comments      Comment[]
+  notifications Notification[]
+  @@map("posts")
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ notifications Notification[]
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("comments")
+}
+
+enum NotificationType {
+  POST_APPROVED
+  POST_REJECTED
+  POST_LIKED
+  POST_COMMENTED
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String          
+  actorId   String?         
+  type      NotificationType
+  postId    String?           
+  commentId String?         
+  message   String          
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user    User     @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor   User?    @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model AiPracticeUsage {
+  id        String   @id @default(uuid())
+  userId    String
+  usageDate DateTime @db.Date
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, usageDate])
+  @@map("ai_practice_usages")
+}
+
+model GoalRewardConfig {
+  id           String   @id @default(uuid())
+  targetDays   Int      @unique
+  shieldReward Int
+  isActive     Boolean  @default(true)
+  orderIndex   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  streakGoals StreakGoal[]
+
+  @@map("goal_reward_configs")
+}
+
+
+model StreakGoal {
+  id           String     @id @default(uuid())
+  userId       String
+  configId     String
+
+  // snapshot tại thời điểm user cam kết
+  targetDays   Int
+  shieldReward Int
+
+  startDate    DateTime   @default(now())
+  targetDate   DateTime
+  status       GoalStatus @default(IN_PROGRESS)
+  completedAt  DateTime?
+  createdAt    DateTime   @default(now())
+
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  config GoalRewardConfig @relation(fields: [configId], references: [id])
+
+  @@map("streak_goals")
+}

@@ -1,0 +1,1 @@
+export const FREE_PRACTICE_LIMIT = 6;
