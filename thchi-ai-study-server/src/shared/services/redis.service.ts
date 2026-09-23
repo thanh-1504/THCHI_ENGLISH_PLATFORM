@@ -6,9 +6,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   public client: Redis;
   constructor(private readonly configService: ConfigService) {}
   onModuleInit() {
+    const port = this.configService.get<number>('REDIS_PORT', 6379);
     this.client = new Redis({
       host: this.configService.get<string>('REDIS_HOST', 'localhost'),
-      port: this.configService.get<number>('REDIS_PORT', 6379),
+      port,
+      // Upstash yêu cầu TLS (port 6380)
+      tls: port === 6380 ? {} : undefined,
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 200, 2000),
       keepAlive: 10000
