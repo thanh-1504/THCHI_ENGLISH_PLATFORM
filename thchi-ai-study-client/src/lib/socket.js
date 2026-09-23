@@ -1,10 +1,15 @@
 import { io } from "socket.io-client";
 let socket = null;
 
+const SOCKET_URL =
+  import.meta.env.MODE === "production"
+    ? import.meta.env.VITE_SERVER_URL
+    : import.meta.env.VITE_API_URL;
+
 export function connecSocket(accessToken) {
-  socket = io(import.meta.env.VITE_API_URL, {
-    auth: { accessToken: accessToken }, 
-    withCredentials: true,              
+  socket = io(SOCKET_URL, {
+    auth: { accessToken: accessToken },
+    withCredentials: true,
   });
   socket.on("connect", () =>
     console.log(`Socket connected with id ${socket.id}`),
