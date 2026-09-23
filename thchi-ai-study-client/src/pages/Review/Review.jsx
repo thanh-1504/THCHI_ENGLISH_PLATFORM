@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import RecommendationUI from "../../components/RecommendationUI";
 import reviewService from "../../services/review.service";
-import CountdownTimer from "./components/countdownTimer";
+import CountdownTimer from "./components/CountdownTimer";
 
 const Review = () => {
   const navigate = useNavigate();
