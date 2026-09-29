@@ -21,7 +21,7 @@
 - [Overview](#-overview)
 - [Features](#-features)
 - [System Architecture](#-system-architecture)
-- [Recommendation Algorithm](#-recommendation-algorithm--spaced-repetition-sm-2)
+- [Spaced Repetition Algorithm (SM-2)](#-spaced-repetition-algorithm-sm-2)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [API Endpoints](#-api-endpoints)
@@ -177,7 +177,7 @@ What sets this apart from typical learning apps: the system does not just presen
 
 ---
 
-## 🧠 Recommendation Algorithm — Spaced Repetition (SM-2)
+## 🧠 Spaced Repetition Algorithm (SM-2)
 
 The review scheduling engine is based on the **SuperMemo 2 (SM-2)** algorithm, a proven cognitive science method that optimally schedules flashcard reviews to maximize long-term memory retention.
 
